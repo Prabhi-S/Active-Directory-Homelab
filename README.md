@@ -1,6 +1,3 @@
-# Active-Directory-Homelab
-A homelab to show competence and literacy of Active Directory and important skills like group policy, managing users, and creating a DC and Client in VirtualBox.
-
 # Active Directory Home Lab (Windows Server 2022)
 
 > **Status:** Finished. Domain controller promoted, NAT routing and DHCP working, about 1,000 users created with PowerShell, a Windows 10 client joined to the domain, and Group Policy built and verified as enforced on that client.
@@ -55,9 +52,9 @@ One thing that confused me for a while: two VMs are connected by the **internal 
 ### 1. Created the Domain Controller VM
 Provisioned a VM named `DC` in VirtualBox and attached the Windows Server 2022 evaluation ISO. Configured two network adapters: **Adapter 1 = NAT** (internet) and **Adapter 2 = Internal Network** (lab).
 
-![VirtualBox VM configuration](01-vm-config.png)
+![VirtualBox VM configuration](screenshots/01-vm-config.png)
 
-![DC VM summary, 4096 MB RAM, 2 CPUs, 50 GB disk](02-dc-vm-summary.png)
+![DC VM summary, 4096 MB RAM, 2 CPUs, 50 GB disk](screenshots/02-dc-vm-summary.png)
 
 VirtualBox turned on "Proceed with Unattended Installation" by itself. I unchecked it. Unattended setup skips the screen where you pick the edition, and it can quietly install Server Core, which has no GUI.
 
@@ -73,7 +70,7 @@ Chose **Custom: Install Windows only**, installed to the 50 GB virtual disk, and
 ### 3. Installed VirtualBox Guest Additions
 Mounted the image via `Devices → Insert Guest Additions CD image` and installed it.
 
-![VirtualBox Guest Additions setup](03-guest-additions.png)
+![VirtualBox Guest Additions setup](screenshots/03-guest-additions.png)
 
 This gives you smooth mouse movement between host and guest, a display that resizes properly, and a shared clipboard. The clipboard turned out to matter most, since it made copying scripts into the VM much easier later on.
 
@@ -82,7 +79,7 @@ This gives you smooth mouse movement between host and guest, a display that resi
 ### 4. Renamed the Network Adapters
 I renamed the two NICs by what they do: `Internet` and `Internal`.
 
-![Network adapters renamed to Internet and Internal](04-renamed-adapters.png)
+![Network adapters renamed to Internet and Internal](screenshots/04-renamed-adapters.png)
 
 The NAT wizard later asks which interface faces the internet. Both adapters show up as "Intel(R) PRO/1000 MT," so without useful names you're guessing. Naming them by purpose made that step obvious.
 
@@ -97,7 +94,7 @@ The NAT wizard later asks which interface faces the internet. Both adapters show
 | Default gateway | *(intentionally blank)* |
 | Preferred DNS | `127.0.0.1` |
 
-![Static IP configuration on the Internal adapter](05-static-ip-internal.png)
+![Static IP configuration on the Internal adapter](screenshots/05-static-ip-internal.png)
 
 The IP has to be static because every domain-joined machine finds the domain by asking DNS, and this server is the DNS server. If its address changed through DHCP, clients would stop being able to find the domain at all.
 
@@ -131,11 +128,11 @@ I did this before promoting it. Renaming a server after it's already a domain co
 ### 7. Installed the AD DS Role
 Through **Server Manager → Add Roles and Features**, installed **Active Directory Domain Services**.
 
-![Add Roles and Features, selecting AD DS](07-add-roles-adds.png)
+![Add Roles and Features, selecting AD DS](screenshots/07-add-roles-adds.png)
 
 Selecting the role prompts to install its required management tools:
 
-![Required features prompt for AD DS](06-adds-required-features.png)
+![Required features prompt for AD DS](screenshots/06-adds-required-features.png)
 
 These tools form the admin toolkit used throughout the rest of the lab:
 - **Group Policy Management**: where GPOs are created and linked
@@ -150,7 +147,7 @@ Installing the role only puts the software on the server. It's not a domain cont
 ### 8. Promoted the Server to a Domain Controller
 Ran the post-deployment **"Promote this server to a domain controller"** task and selected **Add a new forest**, creating the root domain **`mydomain.com`**.
 
-![Deployment Configuration, Add a new forest, mydomain.com](08-new-forest-mydomain.png)
+![Deployment Configuration, Add a new forest, mydomain.com](screenshots/08-new-forest-mydomain.png)
 
 - DNS Server gets installed automatically as part of the promotion
 - I set a DSRM password, which is a recovery password used if the directory database ever gets corrupted
@@ -162,11 +159,11 @@ The server rebooted automatically and returned as the domain controller for `myd
 
 Server Manager now shows AD DS and DNS in both the sidebar and the role tiles. DNS came along automatically with the promotion, which makes sense once you know clients find domain controllers through DNS records.
 
-![Server Manager showing AD DS and DNS roles after promotion](09-server-manager-adds-dns.png)
+![Server Manager showing AD DS and DNS roles after promotion](screenshots/09-server-manager-adds-dns.png)
 
 The sign-in screen now says `MYDOMAIN\Administrator` instead of just a local account name. That was the clearest sign to me that it worked. Logins are being checked against the domain now, not against the machine's own list of accounts.
 
-![Sign-in screen showing MYDOMAIN\Administrator](10-mydomain-administrator-login.png)
+![Sign-in screen showing MYDOMAIN\Administrator](screenshots/10-mydomain-administrator-login.png)
 
 ---
 
@@ -175,7 +172,7 @@ Rather than continuing to work as the built-in Administrator, I created a named 
 
 First, an **Organizational Unit** named `_admins` was created under `mydomain.com` (with "Protect container from accidental deletion" unchecked for lab convenience). Then a user account was created inside it using an `a-` prefix naming convention to identify it as an administrative account.
 
-![Creating the admin user in the _admins OU](11-new-admin-user.png)
+![Creating the admin user in the _admins OU](screenshots/11-new-admin-user.png)
 
 | Field | Value |
 |---|---|
@@ -185,7 +182,7 @@ First, an **Organizational Unit** named `_admins` was created under `mydomain.co
 
 The account was then added to the built-in **`Domain Admins`** security group via **Properties → Member Of → Add**.
 
-![Member Of tab showing Domain Admins membership](12-member-of-domain-admins.png)
+![Member Of tab showing Domain Admins membership](screenshots/12-member-of-domain-admins.png)
 
 Working as the built-in Administrator every day isn't a good habit. Everybody knows that account name so it's an obvious target, and anything it does can't be traced back to a specific person. A named admin account fixes both of those.
 
@@ -205,7 +202,7 @@ I installed the Remote Access role with the Routing service, then set up NAT so 
 
 The DC sits between two networks. The `Internet` adapter (`10.0.2.15`) faces outward, and the `Internal` adapter (`172.16.0.1`) serves the lab network. NAT translates between them so an internal client with a private address can get out.
 
-![RRAS NAT configured with both interfaces enumerated](16-rras-nat-working.png)
+![RRAS NAT configured with both interfaces enumerated](screenshots/16-rras-nat-working.png)
 
 I picked `Internet` as the public interface. This is where renaming the adapters back in Step 4 paid off. Both of them show up as "Intel(R) PRO/1000 MT," so without the names I'd have been guessing, and picking `Internal` would have had NAT pointed the wrong way entirely.
 
@@ -217,15 +214,15 @@ I picked `Internet` as the public interface. This is where renaming the adapters
 >
 > **First problem.** On the NAT Internet Connection page, the Network Interfaces list was completely empty and "Use this public interface" was greyed out. The wizard had defaulted to "Create a new demand-dial interface," which is for modem and PPPoE connections. If I'd gone along with it, NAT would have been bound to an interface that doesn't exist.
 >
-> ![RRAS wizard with an empty interface list](13-rras-empty-interface-list.png)
+> ![RRAS wizard with an empty interface list](screenshots/13-rras-empty-interface-list.png)
 >
 > **Second problem.** I cancelled and reopened the wizard. This time the interface list filled in, but the radio button for it was still greyed out. So the data had refreshed and the control hadn't.
 >
-> ![Interface listed but the radio button still disabled](14-rras-radio-disabled.png)
+> ![Interface listed but the radio button still disabled](screenshots/14-rras-radio-disabled.png)
 >
 > **Then it crashed.** MMC threw a snap-in error, which is what told me the console itself had failed rather than anything being wrong with my network setup.
 >
-> ![MMC snap-in error](15-mmc-snapin-crash.png)
+> ![MMC snap-in error](screenshots/15-mmc-snapin-crash.png)
 >
 > **What was actually happening.** The RRAS snap-in got stuck in a bad state after I cancelled the wizard partway through. Its interface stopped matching the real configuration underneath. Every symptom looked exactly like I'd misconfigured something, but nothing was actually wrong.
 >
@@ -248,7 +245,7 @@ Created a scope covering the client address range:
 
 Three options are delivered to clients along with their address:
 
-![DHCP scope options showing Router, DNS Servers, and DNS Domain Name](17-dhcp-scope-options.png)
+![DHCP scope options showing Router, DNS Servers, and DNS Domain Name](screenshots/17-dhcp-scope-options.png)
 
 | Option | Value | Why it matters |
 |---|---|---|
@@ -267,7 +264,7 @@ One thing that connected back: because I fixed the DC's mask to /24 earlier, the
 ### 12. Bulk-Created Users with PowerShell
 Executed a **provided PowerShell script** to create approximately 1,000 Active Directory user accounts from a source name list.
 
-![PowerShell ISE showing the script and live output](20-powershell-bulk-users.png)
+![PowerShell ISE showing the script and live output](screenshots/20-powershell-bulk-users.png)
 
 **What the script does:**
 1. Reads a list of names from `names.txt` using `Get-Content`
@@ -282,11 +279,11 @@ Windows blocks unsigned scripts by default, so I had to run `Set-ExecutionPolicy
 
 Here's the `_USERS` OU with all the accounts in it:
 
-![Active Directory Users and Computers showing the populated _USERS OU](19-users-ou-populated.png)
+![Active Directory Users and Computers showing the populated _USERS OU](screenshots/19-users-ou-populated.png)
 
 Searching the domain shows both account types, the standard user the script made and the admin account I created earlier:
 
-![Domain search returning both the standard and admin accounts](18-find-user-accounts.png)
+![Domain search returning both the standard and admin accounts](screenshots/18-find-user-accounts.png)
 
 *Duplicate entries in the source name list produced errors for a small number of accounts; the script continued and completed successfully.*
 
@@ -299,13 +296,13 @@ It has to be Pro. Windows 10 Home can't join a domain at all, which is a licensi
 
 On first boot the adapter said "Unidentified network" and the client had no usable address:
 
-![Client network adapter showing Unidentified network](21-client-adapter-unidentified.png)
+![Client network adapter showing Unidentified network](screenshots/21-client-adapter-unidentified.png)
 
 That's what a client looks like when it hasn't gotten DHCP yet. The case study below is how I sorted it out.
 
 Once DHCP was actually working, `ipconfig` showed the client had everything it needed:
 
-![Client ipconfig showing a complete DHCP configuration](22-client-ipconfig-success.png)
+![Client ipconfig showing a complete DHCP configuration](screenshots/22-client-ipconfig-success.png)
 
 | Value | Result | Came from |
 |---|---|---|
@@ -335,9 +332,9 @@ Every one of those traces back to an option I set in Step 11. That's what made m
 ### 14. Joined the Client to the Domain
 With DNS pointed at the DC, I joined `Client1` to `mydomain.com` through System, Rename this PC (Advanced), Change, Member of: Domain, using the admin account from Step 9.
 
-![Domain join dialog for mydomain.com](23-domain-join-dialog.png)
+![Domain join dialog for mydomain.com](screenshots/23-domain-join-dialog.png)
 
-![Welcome to the mydomain.com domain](24-welcome-to-domain.png)
+![Welcome to the mydomain.com domain](screenshots/24-welcome-to-domain.png)
 
 This step is completely dependent on DNS. A client finds a domain controller by asking DNS for SRV records under the domain name. It doesn't broadcast or scan for one. Because DHCP option 006 pointed the client at `172.16.0.1`, and that server knows about `mydomain.com`, the lookup worked and the join went through. If the client had been pointed at a public DNS server instead, I'd have gotten "the domain could not be contacted," which from what I've read is the most common reason a domain join fails.
 
@@ -346,13 +343,13 @@ This step is completely dependent on DNS. A client finds a domain controller by 
 ### 15. Confirmed Domain Login Actually Works
 I logged into the client with one of the domain accounts the PowerShell script made, not a local account, and checked from the command line:
 
-![whoami returning mydomain\psingh](26-whoami-domain-user.png)
+![whoami returning mydomain\psingh](screenshots/26-whoami-domain-user.png)
 
 `whoami` came back as `mydomain\psingh`. The `mydomain\` part is the proof. That login was checked by the domain controller against Active Directory, not by the local machine's own accounts.
 
 Confirmed the same event from the server side, where the DHCP console shows the active lease with the client's registered name:
 
-![DHCP Address Leases showing Client1.mydomain.com](25-dhcp-address-lease.png)
+![DHCP Address Leases showing Client1.mydomain.com](screenshots/25-dhcp-address-lease.png)
 
 | Client IP Address | Name | Lease Expiration |
 |---|---|---|
@@ -371,7 +368,7 @@ You can see this in the tool itself. The Group Policy Management Console doesn't
 
 So I made an OU called `_CLIENTS` and moved `Client1` into it.
 
-![_CLIENTS OU containing the CLIENT1 computer object](27-clients-ou-with-client1.png)
+![_CLIENTS OU containing the CLIENT1 computer object](screenshots/27-clients-ou-with-client1.png)
 
 Every machine that joins a domain lands in `Computers` by default, so this isn't a lab quirk. Building an OU structure and moving machines into it is what makes them manageable at all.
 
@@ -397,7 +394,7 @@ Every GPO is split into Computer Configuration and User Configuration, and the t
 | Account lockout duration | `15` minutes | How long it stays locked before it unlocks itself. |
 | Reset account lockout counter after | `15` minutes | This is a rolling window, not a running total. The count resets after 15 minutes with no failures. |
 
-![Account lockout policy settings](28-account-lockout-settings.png)
+![Account lockout policy settings](screenshots/28-account-lockout-settings.png)
 
 The reset window is the part I had to think about. With these numbers it takes 5 failures inside one 15 minute window. Somebody who gets it wrong twice in the morning and twice after lunch doesn't get locked out, which is the point. You're trying to stop something hammering the account, not punish a person having a bad day.
 
@@ -407,7 +404,7 @@ This one has to be linked at the domain root. Password and account lockout polic
 
 Enabled "Prohibit access to Control Panel and PC settings" under `User Configuration → Policies → Administrative Templates → Control Panel`.
 
-![Control Panel restriction enabled in the GPO editor](29-control-panel-gpo-enabled.png)
+![Control Panel restriction enabled in the GPO editor](screenshots/29-control-panel-gpo-enabled.png)
 
 Administrative Templates is the section of Group Policy that writes registry settings on the target machine. It's separate from Security Settings, where the lockout policy lives, and the two work differently.
 
@@ -421,7 +418,7 @@ The scoping here does something useful. This GPO is linked to `_USERS`, which is
 >
 > **What I saw.** Checking the domain's actual account policy gave me the untouched defaults instead of my values:
 >
-> ![net accounts showing lockout threshold Never](31-lockout-not-applied.png)
+> ![net accounts showing lockout threshold Never](screenshots/31-lockout-not-applied.png)
 >
 > ```
 > Lockout threshold:                      Never      (expected: 5)
@@ -439,7 +436,7 @@ The scoping here does something useful. This GPO is linked to `_USERS`, which is
 > gpresult /r /scope computer
 > ```
 >
-> ![gpresult on the domain controller showing applied GPOs](32-gpresult-dc-precedence.png)
+> ![gpresult on the domain controller showing applied GPOs](screenshots/32-gpresult-dc-precedence.png)
 >
 > ```
 > Applied Group Policy Objects
@@ -456,15 +453,15 @@ The scoping here does something useful. This GPO is linked to `_USERS`, which is
 >
 > **Checking before changing anything.** Both GPOs are linked in the same place, so the tiebreaker is link order:
 >
-> ![Link order showing Default Domain Policy at 1](33-link-order-before.png)
+> ![Link order showing Default Domain Policy at 1](screenshots/33-link-order-before.png)
 >
 > That's what I expected to see. `Default Domain Policy` at link order 1, mine at 2. Lower number wins, because GPOs get applied highest number first, so the lowest one is written last and has the final say.
 >
 > **The fix.** Moved `Account Lockout Policy` to link order 1. One change, nothing else touched:
 >
-> ![Link order after promotion](34-link-order-after.png)
+> ![Link order after promotion](screenshots/34-link-order-after.png)
 >
-> ![net accounts showing the policy applied](35-lockout-applied.png)
+> ![net accounts showing the policy applied](screenshots/35-lockout-applied.png)
 >
 > ```
 > Lockout threshold:                      5
@@ -483,7 +480,7 @@ The scoping here does something useful. This GPO is linked to `_USERS`, which is
 ### 18. Checked That the Policies Actually Reached the Client
 First, confirming the user policy applied:
 
-![gpresult user settings on the client](30-gpresult-user-settings.png)
+![gpresult user settings on the client](screenshots/30-gpresult-user-settings.png)
 
 ```
 CN=psingh,OU=_USERS,DC=mydomain,DC=com
@@ -498,7 +495,7 @@ Worth knowing: run `gpresult` from a normal prompt, not an elevated one. It repo
 
 Applied and actually working aren't the same claim, so I tested the restriction directly:
 
-![Control Panel blocked by policy](36-control-panel-blocked.png)
+![Control Panel blocked by policy](screenshots/36-control-panel-blocked.png)
 
 > "This operation has been cancelled due to restrictions in effect on this computer. Please contact your system administrator."
 
